@@ -29,15 +29,19 @@ def cosim(a,b):
 # All hyper-parameters should be hard-coded in the algorithm.
 def knn(train,query,metric):
     K = 5
-    aggregator = 'mode'
+    nth_obs = 4
     
     train = np.array(train, dtype=object)
     train_labels = train[:, 0]
     train_features = train[:, 1]
+    train_features = reduce_dimension(train_features)
+    train_features = grayscale(train_features)
 
     query = np.array(query, dtype=object)
     test_labels = query[:, 0]
     test_features = query[:, 1]
+    test_features = reduce_dimension(test_features)
+    test_features = grayscale(test_features)
 
     labels = np.zeros(np.size(test_labels), dtype=int)
 
@@ -46,9 +50,12 @@ def knn(train,query,metric):
         neighbours_dist = np.ones(K) * np.inf
         neighbours = np.zeros(K)
 
-        for j in range(len(train_features)):
+        for j in range(i % nth_obs, len(train_features), nth_obs):
             train_f = train_features[j]
-            dist = euclidean(test_f, train_f)
+            if metric == 'euclidean':
+                dist = euclidean(test_f, train_f)
+            else:
+                dist = 1 - cosim(test_f, train_f)
             for k in range(K):
                 if dist < neighbours_dist[k]:
                     neighbours_dist = np.insert(neighbours_dist, k, dist)
@@ -78,16 +85,40 @@ def knn(train,query,metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
-    K = 5
-    aggregator = 'mode'
-    train_labels = train[:, 0]
+    n_clusters = 10
+
+    train = np.array(train, dtype=object)
     train_features = train[:, 1]
 
+    query = np.array(query, dtype=object)
     test_labels = query[:, 0]
     test_features = query[:, 1]
 
 
+    #train 
+
+
+    labels = np.zeros(np.size(test_labels), dtype=int)
+    # predict
+        
+    # confusion matrix 
+
     return(labels)
+
+
+
+def reduce_dimension(features):
+    for i in range(len(features)):
+        features[i] = features[i][0::2]
+    return features
+
+
+def grayscale(features):
+    for i in range(len(features)):
+        for j in range(len(features[i])):
+            if features[i][j] > 0:
+                features[i][j] = 1
+    return features
 
 
 def read_data(file_name):
@@ -126,7 +157,10 @@ def main():
 
     test_data = read_data('test.csv')
     train_data = read_data('train.csv')
-    labels = knn(train_data, test_data, euclidean)
+    print('KNN: Euclidean')
+    labels = knn(train_data, test_data, 'euclidean')
+    print('\nKNN: Cosim')
+    labels = knn(train_data, test_data, 'cosim')
     
 if __name__ == "__main__":
     main()
