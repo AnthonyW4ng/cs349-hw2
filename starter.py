@@ -1,11 +1,25 @@
 # returns Euclidean distance between vectors a dn b
 def euclidean(a,b):
-    
+    sum_ = 0
+    for i in range(len(a)):
+        sum_ += (a[i] - b[i]) ** 2
+    dist = sum_ ** (1/2)
     return(dist)
         
 # returns Cosine Similarity between vectors a dn b
 def cosim(a,b):
-    
+    sum_ = 0
+    a_mag = 0
+    b_mag = 0
+    for i in range(len(a)):
+        sum_ += a[i] * b[i]
+        a_mag += a[i] ** 2
+        b_mag += b[i] ** 2
+
+    a_mag = a_mag ** (1/2)
+    b_mag = b_mag ** (1/2)
+
+    dist = sum_ / (a_mag * b_mag)
     return(dist)
 
 # returns a list of labels for the query dataset based upon labeled observations in the train dataset.
