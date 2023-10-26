@@ -1,3 +1,5 @@
+import numpy as np
+
 # returns Euclidean distance between vectors a dn b
 def euclidean(a,b):
     sum_ = 0
@@ -26,6 +28,49 @@ def cosim(a,b):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def knn(train,query,metric):
+    K = 5
+    aggregator = 'mode'
+    
+    train = np.array(train, dtype=object)
+    train_labels = train[:, 0]
+    train_features = train[:, 1]
+
+    query = np.array(query, dtype=object)
+    test_labels = query[:, 0]
+    test_features = query[:, 1]
+
+    labels = np.zeros(np.size(test_labels), dtype=int)
+
+    for i in range(len(test_features)):
+        test_f = test_features[i]
+        neighbours_dist = np.ones(K) * np.inf
+        neighbours = np.zeros(K)
+
+        for j in range(len(train_features)):
+            train_f = train_features[j]
+            dist = euclidean(test_f, train_f)
+            for k in range(K):
+                if dist < neighbours_dist[k]:
+                    neighbours_dist = np.insert(neighbours_dist, k, dist)
+                    neighbours_dist = np.delete(neighbours_dist, -1)
+
+                    neighbours = np.insert(neighbours, k, j)
+                    neighbours = np.delete(neighbours, -1)
+                    break
+
+
+        nearest_labels = [train_labels[int(n)] for n in neighbours]
+        unique, counts = np.unique(nearest_labels, return_counts=True)
+        idx = np.argmax(counts)
+        labels[i] = unique[idx]
+
+    confusion_matrix = np.zeros((10, 10))
+    for i in range(len(test_labels)):
+        predicted = labels[i] 
+        real = test_labels[i]
+        confusion_matrix[predicted][real] += 1
+
+    print(confusion_matrix)
     return(labels)
 
 # returns a list of labels for the query dataset based upon observations in the train dataset. 
@@ -33,7 +78,17 @@ def knn(train,query,metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
+    K = 5
+    aggregator = 'mode'
+    train_labels = train[:, 0]
+    train_features = train[:, 1]
+
+    test_labels = query[:, 0]
+    test_features = query[:, 1]
+
+
     return(labels)
+
 
 def read_data(file_name):
     
@@ -42,10 +97,10 @@ def read_data(file_name):
         for line in f:
             line = line.replace('\n','')
             tokens = line.split(',')
-            label = tokens[0]
+            label = int(tokens[0])
             attribs = []
             for i in range(784):
-                attribs.append(tokens[i+1])
+                attribs.append(int(tokens[i+1]))
             data_set.append([label,attribs])
     return(data_set)
         
@@ -67,7 +122,11 @@ def show(file_name,mode):
         print(' ')
             
 def main():
-    show('valid.csv','pixels')
+    # show('valid.csv','pixels')
+
+    test_data = read_data('test.csv')
+    train_data = read_data('train.csv')
+    labels = knn(train_data, test_data, euclidean)
     
 if __name__ == "__main__":
     main()
