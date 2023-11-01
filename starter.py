@@ -85,27 +85,110 @@ def knn(train,query,metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
-    n_clusters = 10
+    n_clusters = 50
 
     train = np.array(train, dtype=object)
+    train_labels = train[:, 0]
     train_features = train[:, 1]
+    train_features = reduce_dimension(train_features)
+    train_features = grayscale(train_features)
 
+    
     query = np.array(query, dtype=object)
     test_labels = query[:, 0]
     test_features = query[:, 1]
+    test_features = reduce_dimension(test_features)
+    test_features = grayscale(test_features)
 
+    # randomize the centroids
+    centroids = []
+    for i in range(n_clusters):
+        centroids.append(np.random.randint(2, size=len(train_features[0])))
 
-    #train 
+    converged = False
+    # while not converged
+    while not converged:
+        # intializes each cluster
+        clusters = []
+        clusters_idx = []
+        for i in range(n_clusters):
+            clusters.append([])
+            clusters_idx.append([])
 
+        # for each obs find the closest centroid
+        for i in range(len(train_features)):
+            obs = train_features[i]
+            count = 0
+            cluster_num = 0
+            best_dist = float('inf')
+            for j in range(len(centroids)):
+                c = centroids[j]
+                if metric == 'euclidean':
+                    dist = euclidean(obs, c)
+                else:
+                    dist = 1 - cosim(obs, c)
+                if dist < best_dist:
+                    cluster_num = count
+                    best_dist = dist
+                count += 1
+            clusters[cluster_num].append(obs)
+            clusters_idx[cluster_num].append(i)
+            
+        # using those clusters calculate new centroid
+        old_centroids = centroids
+        centroids = []
+        for i in range(n_clusters):
+            if len(clusters[i]) == 0:
+                n_clusters -= 1
+            else:
+                centroids.append(np.round(np.sum(clusters[i], 0)/len(clusters[i])))
+
+        # check if converged
+        for i in range(n_clusters):
+            converged = True
+            if not all(np.equal(old_centroids[i], centroids[i])):
+                converged = False
+
+    # assign a label to those groups
+    cluster_labels = []
+    for i in range(n_clusters):
+        c_labels = []
+        for idx in clusters_idx[i]:
+            c_labels.append(train_labels[idx])
+        unique, counts = np.unique(c_labels, return_counts=True)
+        index = np.argmax(counts)
+        cluster_labels.append(unique[index])
+    print('labels:\n', cluster_labels)
 
     labels = np.zeros(np.size(test_labels), dtype=int)
-    # predict
-        
-    # confusion matrix 
+    for i in range(len(test_features)):
+        test_obs = test_features[i]
+        count = 0
+        cluster_num = 0
+        best_dist = float('inf')
+        for c in centroids:
+            if metric == 'euclidean':
+                dist = euclidean(test_obs, c)
+            else:
+                dist = 1 - cosim(test_obs, c)
+            if dist < best_dist:
+                cluster_num = count
+                best_dist = dist
+            count += 1
+        labels[i] = cluster_labels[cluster_num]
 
+    confusion_matrix = np.zeros((10, 10))
+    count = 0
+    for i in range(len(test_labels)):
+        predicted = labels[i] 
+        real = test_labels[i]
+        confusion_matrix[predicted][real] += 1
+        if predicted == real:
+            count += 1
+    print(count/len(test_labels))
+
+    print(confusion_matrix)
     return(labels)
-
-
 
 def reduce_dimension(features):
     for i in range(len(features)):
@@ -157,10 +240,15 @@ def main():
 
     test_data = read_data('test.csv')
     train_data = read_data('train.csv')
-    print('KNN: Euclidean')
-    labels = knn(train_data, test_data, 'euclidean')
-    print('\nKNN: Cosim')
-    labels = knn(train_data, test_data, 'cosim')
+    # print('KNN: Euclidean')
+    # labels = knn(train_data, test_data, 'euclidean')
+    # print('\nKNN: Cosim')
+    # labels = knn(train_data, test_data, 'cosim')
+
+    print('KMeans: Euclidean')
+    labels = kmeans(train_data, test_data, 'euclidean')
+    print('\nKMeans: Cosim')
+    labels = kmeans(train_data, test_data, 'cosim')
     
 if __name__ == "__main__":
     main()
